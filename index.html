@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Song Gani</title>
+    <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet" />
+
+    <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" defer></script>
+</head>
+<body class="bg-gradient-to-br from-purple-600 to-red-500 text-white">
+    <canvas id="canvas" class="absolute inset-0 bg-red-500s w-full h-full"></canvas>
+
+    <div class="z-10 relative h-screen flex flex-col items-center justify-center"
+        x-data="game()" x-init="init()"
+    >
+        <div class="fixed inset-x-0 top-10 flex items-center justify-center">
+            <h3 class="border-b text-2xl mb-12 font-serif uppercase tracking-wider">
+                Song Gani?
+            </h3>
+        </div>
+
+        <div class="fixed inset-x-0 top-40 flex items-center justify-center">
+            <h3 class="text-7xl font-serif uppercase tracking-wider text-yellow-500">
+                <span x-text="timeLeft"></span>
+            </h3>
+        </div>
+
+        <template x-if="selectedSong">
+            <div class="fixed right-6 top-10 flex items-centers bg-white text-black pr-4 max-w-xs text-lg rounded overflow-hidden"
+                :class="{'opacity-100': !showSelectedSong}"
+            >
+                <div class="flex-shrink-0 mr-2 relative p-1 rounded overflow-hidden"
+                    style="width: 70px;"
+                >
+                    <img class="rounded relative w-full h-full object-cover" :src="selectedSong.artwork" />
+                </div>
+                <div class="min-w-0 py-3">
+                    <h3 class="mb-1.5 leading-none text-md font-semibold truncate" x-text="selectedSong.name"></h3>
+                    <p class="flex items-center text-sm opacity-75 truncate">
+                        <span x-text="selectedSong.artistName"></span>
+                        <span class="ml-1 opacity-75">&mdash; 
+                            <span x-text="selectedSong.albumName"></span>
+                        </span>
+                    </p>
+                </div>
+            </div>
+        </template>
+
+        <div class="mt-8 flex flex-col items-center justify-center">
+            <h2 class="text-7xl font-bold tracking-wider mb-12">
+                What song is this?
+            </h2>
+
+            <button class="rounded py-3 px-7 uppercase tracking-widest text-xl bg-white text-black"
+                x-show="showSelectedSong"
+                @click="nextSong()"
+            >
+                Next Song
+            </button>
+
+            <button class="rounded py-3 px-7 uppercase tracking-widest text-xl bg-white text-black"
+                x-show="!showSelectedSong"
+                @click="stop()"
+            >
+                Stop Song
+            </button>
+        </div>
+        <!-- <form class="flex mb-6 border-2 border-white rounded-lg" onsubmit="searchForSong(event)">
+            <input class="text-black px-3 w-72 p-2 text-lg" type="text" placeholder="Enter song title" />
+            <button class="px-5" type="submit">Search</button>
+        </form> -->
+    </div>
+
+    <script>
+        var selectedIndex = -1;
+        var audio = new Audio();
+        var canvas = document.getElementById("canvas");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        var ctx = canvas.getContext("2d");
+        var timer = null;
+        // var context = new AudioContext();
+        // var src, analyser;
+
+        function shuffle(array) {
+            return [...array].sort(_ => Math.random() - 0.5);
+        }
+
+        function game(){
+            return {
+                showSelectedSong: true,
+                selectedSong: null,
+                timeLeft: 0,
+                songs: [],
+                async init(){
+                    const res = await fetch("songs.json");
+                    const songs = await res.json();
+                    this.songs = shuffle(songs);
+
+                    console.log("Songs: ", this.songs);
+                },
+                startTimer(song){
+                    if(timer != null)
+                        clearInterval(timer);
+
+                    this.timeLeft = 30;
+                    timer = setInterval(() => {
+                        this.timeLeft -= 1;
+
+                        if(this.timeLeft <= 0)
+                            this.stop();
+                    }, 1000);
+                },
+                stop(){
+                    this.showSelectedSong = true;
+                    clearInterval(timer);
+                    audio.pause();
+
+                    const msg = new SpeechSynthesisUtterance(
+                        `That was ${this.selectedSong.name} by ${this.selectedSong.artistName}`
+                    );
+                    window.speechSynthesis.speak(msg);
+                },
+                playSong(song){
+                    audio.src = "songs/" + this.selectedSong.fileName;
+                    audio.currentTime = 0;
+                    audio.play();
+
+                    try {
+                        visualise();
+                    } catch (error) {
+                        
+                    }
+                },
+                nextSong(song){
+                    if(this.selectedSong)
+                        this.selectedSong.artwork = "";
+
+                    setTimeout(() => {
+                        selectedIndex += 1;
+                        this.selectedSong = null;
+                        this.showSelectedSong = false;
+                        this.selectedSong = this.songs[selectedIndex];
+    
+                        this.playSong();
+    
+                        this.startTimer();
+                    }, this.selectedSong ? 10 : 0); // force image change
+                }
+            }
+        }
+
+        function visualise() {
+            var context = new AudioContext();
+            var src, analyser;
+            src = context.createMediaElementSource(audio);
+            analyser = context.createAnalyser();
+            src.connect(analyser);
+            analyser.connect(context.destination);
+            analyser.fftSize = 256;
+
+            // if(!src){
+            // }
+
+
+            var bufferLength = analyser.frequencyBinCount;
+            console.log(bufferLength);
+
+            var dataArray = new Uint8Array(bufferLength);
+
+            var WIDTH = canvas.width;
+            var HEIGHT = canvas.height;
+
+            var barWidth = (WIDTH / bufferLength) * 2.5;
+            var barHeight;
+            var x = 0;
+
+            function renderFrame() {
+                requestAnimationFrame(renderFrame);
+
+                x = 0;
+
+                analyser.getByteFrequencyData(dataArray);
+
+                // ctx.fillStyle = "#000";
+                ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+                for (var i = 0; i < bufferLength; i++) {
+                    barHeight = dataArray[i];
+                    
+                    var r = barHeight + (25 * (i/bufferLength));
+                    var g = 250 * (i/bufferLength);
+                    var b = 50;
+
+                    // ctx.fillStyle = "rgb(" + r + "," + g + "," + b + ")";
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+                    ctx.fillRect(x, HEIGHT - barHeight, barWidth, barHeight);
+
+                    x += barWidth + 1;
+                }
+            }
+
+            renderFrame();
+        };
+    </script>
+</body>
+</html>
