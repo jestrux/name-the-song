@@ -49,25 +49,25 @@
 	<body
 		x-data="game()"
 		x-init="init()"
-		class="bg-gradient-to-br from-purple-600 to-red-500 dark:from-purple-900 dark:to-red-900 text-white"
+		class="h-screen w-screen bg-gradient-to-br from-purple-600 to-red-500 dark:from-purple-900 dark:to-red-900 text-white"
 	>
 		<canvas
 			id="pulseCanvas"
-			class="transition-opacity duration-500 absolute inset-0 bg-red-500s w-full h-full scale-110"
+			class="transition-opacity duration-500 fixed inset-0 bg-red-500s w-full h-full scale-110"
 			:class="{'opacity-0': !showSelectedSong}"
 		></canvas>
 
 		<canvas
 			id="canvas"
-			class="absolute inset-0 bg-red-500s w-full h-full"
+			class="fixed inset-0 bg-red-500s w-full h-full"
 		></canvas>
 
 		<div
-			class="z-10 relative h-screen flex flex-col items-center justify-between"
+			class="z-10 fixed inset-0 flex flex-col items-center justify-between"
 		>
 			<div class="mt-12 flex items-center justify-center">
 				<h3
-					class="text-3xl font-serif font-black uppercase tracking-wide text-yellow-300"
+					class="text-2xl md:text-3xl font-serif font-black uppercase tracking-wide text-yellow-300"
 					style="text-shadow: 5px 3px 3px rgb(0 0 0 / 5%)"
 				>
 					Name the song
@@ -75,7 +75,7 @@
 			</div>
 
 			<div
-				class="px-6 mb-12 w-full flex-1 flex flex-col items-center justify-center"
+				class="px-6 mb-8s w-full flex-1 flex flex-col items-center justify-center"
 			>
 				<!-- class="fixed right-6 top-10 flex items-centers bg-white text-black pr-4 max-w-xs text-lg rounded overflow-hidden" -->
 				<template x-if="selectedSong">
@@ -120,14 +120,17 @@
 			</div>
 
 			<div
-				class="md:mb-3 bg-white text-black dark:bg-gray-900 dark:text-white h-16 pl-5 pr-3 md:rounded flex items-center justify-between w-full max-w-2xl mx-auto"
+				class="md:mb-5 bg-white text-black dark:bg-gray-900 dark:text-white h-16 pl-5 pr-3 md:rounded flex items-center justify-between w-full max-w-2xl mx-auto"
 			>
-				<div class="flex items-center">
-					<span class="opacity-90 uppercase font-medium tracking-wide"
-						>Time left</span
+				<div class="text-lg">The weirdos</div>
+
+				<div class="ml-auto mr-3 md:mr-5 flex items-center">
+					<span
+						class="hidden md:inline-block opacity-90 uppercases font-medium tracking-wide"
+						>Time left:</span
 					>
 					<span
-						class="ml-3 pb-1 text-3xl leading-none font-serif font-bold uppercase tracking-wider text-orange-500"
+						class="ml-2 pb-1 text-3xl leading-none font-serif font-bold uppercase tracking-wider text-orange-500"
 						x-text="timeLeft.toString().padStart(2, '0')"
 					>
 					</span>
@@ -246,7 +249,7 @@
 					{
 						headers: {
 							Authorization:
-								"Bearer BQAnS1HxpmPkzhed7sys2NivVgp8uUcxlgaGtZkcC8QVjQBihZ14QkiaFe4Tl5F-t4An2hN8OEDwSLFCd2Nr9tyqS_V4Jx9nrpXjW0XEj-w-z-dVNMX6s84r5cwXTR26wSTDS0nBazKoOEwFCm9AYrxZr0ArRyeChxrFoMpsFqpRRBlMoGPn-XXZaor1jmpejDc",
+								"Bearer BQDK7GJqzmoUa_BD18bW8AaZXE2E6JhjYagdSrsgL0wVXxpW2l9VrLXpQfqRF9uklcheyxke2DUIzBgI8LZIbaZdIdntDaubfrqV8il2iwjrP4mm7n72jJfQTz1QiyVbzUTToJ1TaFhzT39-g8bgee3qqGtBNUeIKvlO56Q-F7ZnGcDcibiQydYWR-JoqUEdW4o",
 						},
 					}
 				);
