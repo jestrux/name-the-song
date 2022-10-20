@@ -46,7 +46,17 @@
 			}
 		</style>
 	</head>
-	<body class="bg-gradient-to-br from-purple-600 to-red-500 dark:from-purple-900 dark:to-red-900 text-white">
+	<body
+		x-data="game()"
+		x-init="init()"
+		class="bg-gradient-to-br from-purple-600 to-red-500 dark:from-purple-900 dark:to-red-900 text-white"
+	>
+		<canvas
+			id="pulseCanvas"
+			class="transition-opacity duration-500 absolute inset-0 bg-red-500s w-full h-full scale-110"
+			:class="{'opacity-0': !showSelectedSong}"
+		></canvas>
+
 		<canvas
 			id="canvas"
 			class="absolute inset-0 bg-red-500s w-full h-full"
@@ -54,12 +64,11 @@
 
 		<div
 			class="z-10 relative h-screen flex flex-col items-center justify-between"
-			x-data="game()"
-			x-init="init()"
 		>
 			<div class="mt-12 flex items-center justify-center">
 				<h3
-					class="border-b text-2xl font-serif uppercase tracking-wider"
+					class="text-3xl font-serif font-black uppercase tracking-wide text-yellow-300"
+					style="text-shadow: 5px 3px 3px rgb(0 0 0 / 5%)"
 				>
 					Name the song
 				</h3>
@@ -190,6 +199,7 @@
 						}, 1000);
 					},
 					stop() {
+						loop({ angle: -0.3 });
 						this.showSelectedSong = true;
 						clearInterval(timer);
 						audio.pause();
@@ -210,6 +220,8 @@
 					},
 					nextSong(song) {
 						if (this.selectedSong) this.selectedSong.artwork = "";
+
+						stopPulseAnimation();
 
 						setTimeout(
 							() => {
@@ -234,7 +246,7 @@
 					{
 						headers: {
 							Authorization:
-								"Bearer BQClMGwqWj1DNcwDjWgZac70w8xpa9Kgw9WJKhLhhW2jIwHGIl2UOfYwNyT-1Y_T2OeyUbViRyUSm4MOPmQ4lbF82LvMqSLXPdI0bPd1FW3XZa7c2UTg5beQylffzFz_7v6AJyQ4fJyNP__x0kQbD6iMLKFL_DKGbbMh9Ap2H9K8ktVhV41UTl0o8J8owNXZhkc",
+								"Bearer BQAnS1HxpmPkzhed7sys2NivVgp8uUcxlgaGtZkcC8QVjQBihZ14QkiaFe4Tl5F-t4An2hN8OEDwSLFCd2Nr9tyqS_V4Jx9nrpXjW0XEj-w-z-dVNMX6s84r5cwXTR26wSTDS0nBazKoOEwFCm9AYrxZr0ArRyeChxrFoMpsFqpRRBlMoGPn-XXZaor1jmpejDc",
 						},
 					}
 				);
@@ -324,6 +336,85 @@
 
 				renderFrame();
 			}
+		</script>
+
+		<script>
+			// Taken from: https://codepen.io/ScarpMetal/pen/erWwEy
+			const { innerWidth, innerHeight } = window;
+			const width = innerWidth * 3;
+			const height = innerHeight * 3;
+			const pulseCanvas = document.getElementById("pulseCanvas");
+			var pulseCtx = pulseCanvas.getContext("2d");
+			pulseCanvas.width = width;
+			pulseCanvas.height = height;
+
+			var radSubtract = 90;
+			var hue = -30; // 0;
+			function draw() {
+				pulseCtx.clearRect(0, 0, width, height);
+				pulseCtx.beginPath();
+				var initRadius = width > height ? height / 2 : width / 2;
+				var radius = initRadius - 20;
+
+				while (radius > 0) {
+					pulseCtx.beginPath();
+					pulseCtx.arc(width / 2, height / 2, radius, 0, 2 * Math.PI);
+					const darkMode =
+						window.matchMedia &&
+						window.matchMedia("(prefers-color-scheme: dark)")
+							.matches;
+					pulseCtx.fillStyle = `hsla(${hue}, 100%, 60%, ${
+						((initRadius - radius) * (darkMode ? 0.3 : 1)) /
+						initRadius
+					})`;
+					pulseCtx.fill();
+					radius -= radSubtract;
+				}
+			}
+
+			var angle = 0,
+				multi = 1;
+			function update() {
+				angle += (multi * (2 * Math.PI)) / 625;
+				if (angle >= 1.6) {
+					multi = -1;
+					setTimeout(() => {
+						stopPulseAnimation();
+					}, 600);
+				} else if (angle <= -0.6) {
+					multi = 1;
+				}
+
+				radSubtract = Math.cos(angle) * 110 + 90;
+				// hue = -30;
+				// if (Math.cos(angle) == 1) {
+				// 	hue -= 30;
+				// 	hue %= 360;
+				// }
+			}
+
+			let pulseFrame = null;
+			function loop(options) {
+				if (options?.angle) angle = options.angle;
+				if (window.innerWidth < 900) return;
+
+				if (!options?.once) pulseFrame = requestAnimationFrame(loop);
+				update();
+				draw();
+			}
+
+			function stopPulseAnimation() {
+				cancelAnimationFrame(pulseFrame);
+				pulseFrame = null;
+			}
+
+			loop({ angle: -0.7 });
+
+			window
+				.matchMedia("(prefers-color-scheme: dark)")
+				.addEventListener("change", (event) => {
+					if (pulseFrame == null) loop({ angle: 0.878, once: true });
+				});
 		</script>
 	</body>
 </html>
