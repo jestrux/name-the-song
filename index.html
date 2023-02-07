@@ -26,6 +26,10 @@
 		></script>
 
 		<style>
+			.flipped {
+				transform: rotateX(180deg);
+			}
+
 			.animate-float {
 				/* animation: float 2s infinite
 					cubic-bezier(0.68, -0.55, 0.27, 1.55); */
@@ -74,6 +78,7 @@
 
 		<div
 			class="z-10 fixed inset-0 flex flex-col items-center justify-between"
+			style="perspective: 1000px"
 		>
 			<div class="mt-12 flex items-center justify-center">
 				<h3
@@ -130,9 +135,78 @@
 			</div>
 
 			<div
-				class="md:mb-5 bg-white text-black dark:bg-gray-900 dark:text-white h-16 pl-5 pr-3 md:rounded flex items-center justify-between w-full max-w-2xl mx-auto"
+				class="relative overflow-hidden md:mb-5 bg-white text-black dark:bg-gray-900 dark:text-white h-16 pl-1 pr-3 md:rounded flex items-center justify-between w-full max-w-2xl mx-auto shadow-xl transition-transform"
+				:class="{'flipped': addPlaylist}"
 			>
-				<div class="text-lg">The weirdos</div>
+				<template x-if="playlist">
+					<a
+						:href="playlist.href"
+						target="_blank"
+						class="flex items-center hover:bg-gray-200 space-x-3 p-1.5 pr-3 min-w-[200px] max-w-[300px] rounded"
+						:title="`${playlist.name } by ${playlist.author}`"
+					>
+						<div
+							class="flex-shrink-0 rounded relative overflow-hidden w-10 h-10"
+						>
+							<img
+								class="absolute inset-0 w-full h-full"
+								:src="playlist.images[0]"
+								alt=""
+							/>
+						</div>
+						<div class="flex flex-col space-y-1.5 min-w-0">
+							<span
+								class="text-lg leading-none truncate"
+								x-text="playlist.name"
+							></span>
+							<span
+								class="opacity-60 text-sm leading-none"
+								x-text="playlist.author"
+							></span>
+						</div>
+					</a>
+				</template>
+
+				<button
+					x-show="playlist"
+					class="ml-2 text-pink-600 text-sm px-2 py-1 rounded-full hover:bg-gray-200/50"
+					@click="changePlaylistUrl"
+				>
+					Change
+				</button>
+
+				<div
+					x-show="playlist && addPlaylist"
+					class="absolute flex items-center inset-0 bg-white z-10"
+					style="transform: rotateX(180deg)"
+				>
+					<form
+						class="w-full flex items-center px-3 h-10 space-x-2"
+						action="#"
+						@submit="updatePlaylist"
+					>
+						<input
+							class="flex-1 px-3 rounded bg-gray-100/70 border border-neutral-300 h-full"
+							placeholder="Enter playlist URL here"
+							type="text"
+							required
+							id="playlistUrlInput"
+							x-model="playlistUrl"
+						/>
+						<button
+							class="rounded h-full py-2 px-3 uppercase tracking-wide font-medium text-sm bg-white dark:bg-gray-900 invert border"
+						>
+							Submit
+						</button>
+						<button
+							type="button"
+							class="rounded h-full py-2 px-3 uppercase tracking-wide font-medium text-sm border"
+							@click="addPlaylist = false"
+						>
+							Cancel
+						</button>
+					</form>
+				</div>
 
 				<div class="ml-auto mr-3 md:mr-5 flex items-center">
 					<span
@@ -154,13 +228,47 @@
 					Next Song
 				</button>
 			</div>
-			<!-- <form class="flex mb-6 border-2 border-white rounded-lg" onsubmit="searchForSong(event)">
-            <input class="text-black px-3 w-72 p-2 text-lg" type="text" placeholder="Enter song title" />
-            <button class="px-5" type="submit">Search</button>
-        </form> -->
 		</div>
 
 		<script>
+			let savedToken,
+				authEnd = 0;
+			async function getToken() {
+				// return "BQCWQA-cVBIs0wFSPiYAgL89b2dnCSxE76fi88AHgWVzvsurhpsBvDEUvbPjpxGOikjoGEWwv50J0k9WEbwppHwh7AhUmx1G9Pn2YeguCEU-ZAu5SR2o";
+				// 5 minutes
+				if (savedToken && authEnd - Date.now() > 5 * 60000)
+					return savedToken;
+
+				const client_id = "383620f73a0d43d9a90bbce3c874a23e";
+				const client_secret = "4fcbe9a340d349c984a0455dc94caf6a";
+
+				const res = await fetch(
+					"https://accounts.spotify.com/api/token",
+					{
+						method: "POST",
+						mode: "cors",
+						headers: {
+							"Content-Type": "application/x-www-form-urlencoded",
+							Authorization:
+								"Basic " +
+								btoa(client_id + ":" + client_secret).toString(
+									"base64"
+								),
+						},
+						body: `${encodeURIComponent(
+							"grant_type"
+						)}=${encodeURIComponent("client_credentials")}`,
+					}
+				);
+
+				const tokenDetails = await res.json();
+				// console.log("Res: ", token);
+				savedToken = tokenDetails.access_token;
+
+				authEnd = Date.now() + tokenDetails.expires_in;
+				return savedToken;
+			}
+
 			var selectedIndex = -1;
 			var audio = new Audio();
 			audio.crossOrigin = "anonymous";
@@ -169,8 +277,6 @@
 			canvas.height = window.innerHeight;
 			var ctx = canvas.getContext("2d");
 			var timer = null;
-			// var context = new AudioContext();
-			// var src, analyser;
 
 			function shuffle(array) {
 				return [...array].sort((_) => Math.random() - 0.5);
@@ -178,12 +284,24 @@
 
 			function game() {
 				return {
+					addPlaylist: false,
 					showSelectedSong: true,
 					selectedSong: null,
 					timeLeft: 0,
+					playlist: null,
 					songs: [],
-					playlistId: "5LmrIyz7EepEKfVLszGGwQ",
-					async init() {
+					playlistUrl:
+						"https://open.spotify.com/playlist/5dlw1DrL1yi4QtAYY1Fr1O?si=4r7uP4OvRLC-5r1wjy8kew",
+					// playlistUrl:
+					// 	"https://open.spotify.com/playlist/5LmrIyz7EepEKfVLszGGwQ?si=ffCMNcGiTpOaey6oCS2fnQ",
+					get playlistId() {
+						const uri =
+							"https://open.spotify.com/playlist/1GXN1gZMuTlW5LjpTNJF2q?si=d3fa4293e26049f8";
+						return new URL(this.playlistUrl).pathname
+							.split("/")
+							.pop();
+					},
+					init() {
 						this.selectedSong = {
 							artwork:
 								"https://i.scdn.co/image/ab67616d0000b2732e8a3c52a5154c789c9070ae",
@@ -193,13 +311,8 @@
 							preview:
 								"https://p.scdn.co/mp3-preview/960b77e86b0afff7e7ee21cee3156dd49dd08692?cid=774b29d4f13844c495f206cafdad9c86",
 						};
-						const res = await fetchPlaylistDetails(this.playlistId);
-						// const res = await fetch("songs.json");
-						// const songs = await res.json();
-						this.songs = shuffle(res.tracks);
-						this.selectedSong = res.tracks[0];
-
-						console.log("Songs: ", res.tracks[0]);
+						// console.log(this.playlistId);
+						this.updatePlaylist();
 					},
 					startTimer(song) {
 						if (timer != null) clearInterval(timer);
@@ -232,7 +345,7 @@
 						} catch (error) {}
 					},
 					nextSong(song) {
-						if (this.selectedSong) this.selectedSong.artwork = "";
+						// if (this.selectedSong) this.selectedSong.artwork = "";
 
 						stopPulseAnimation();
 
@@ -250,24 +363,43 @@
 							this.selectedSong ? 10 : 0
 						); // force image change
 					},
+					changePlaylistUrl() {
+						this.addPlaylist = true;
+						setTimeout(() => {
+							const input =
+								document.querySelector("#playlistUrlInput");
+							input.focus();
+							input.select();
+						});
+					},
+					async updatePlaylist(event) {
+						if (event) event.preventDefault();
+						const res = await fetchPlaylistDetails(this.playlistId);
+						this.playlist = { ...res };
+						const tracks = shuffle(res.tracks);
+						this.songs = tracks;
+						this.selectedSong = tracks[0];
+						this.addPlaylist = false;
+					},
 				};
 			}
 
 			async function fetchPlaylistDetails(playlistId) {
+				// return;
+				const token = await getToken();
 				const res = await fetch(
 					`https://api.spotify.com/v1/playlists/${playlistId}`,
 					{
 						headers: {
-							Authorization:
-								"Bearer BQDK7GJqzmoUa_BD18bW8AaZXE2E6JhjYagdSrsgL0wVXxpW2l9VrLXpQfqRF9uklcheyxke2DUIzBgI8LZIbaZdIdntDaubfrqV8il2iwjrP4mm7n72jJfQTz1QiyVbzUTToJ1TaFhzT39-g8bgee3qqGtBNUeIKvlO56Q-F7ZnGcDcibiQydYWR-JoqUEdW4o",
+							Authorization: `Bearer ${token}`,
 						},
 					}
 				);
 				let data = await res.json();
-				// console.log("Playlisyt details: ", data);
 
 				data = {
 					images: data.images.map(({ url }) => url),
+					href: data.external_urls.spotify,
 					name: data.name,
 					author: data.owner.display_name,
 					public: data.public,
@@ -300,9 +432,6 @@
 				src.connect(analyser);
 				analyser.connect(context.destination);
 				analyser.fftSize = 256;
-
-				// if(!src){
-				// }
 
 				var bufferLength = analyser.frequencyBinCount;
 				console.log(bufferLength);
