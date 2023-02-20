@@ -5,8 +5,8 @@
 <html lang="en">
 	<head>
 		<meta charset="UTF-8" />
-		<link rel="icon" href="favicon.ico" sizes="any">
-		<link rel="apple-touch-icon" href="logo192.png" />
+		<link rel="icon" href="favicon.ico" sizes="any" />
+		<link rel="apple-touch-icon" href="logo192-maskable.png" />
 		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 		<meta
 			name="theme-color"
@@ -19,7 +19,7 @@
 			media="(prefers-color-scheme: dark)"
 		/>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		
+
 		<link rel="manifest" href="manifest.json" />
 		<title>Name The Song</title>
 		<script src="https://cdn.tailwindcss.com"></script>
@@ -487,13 +487,20 @@
 		<script>
 			// Taken from: https://codepen.io/ScarpMetal/pen/erWwEy
 			// Improve performance: https://blog.logrocket.com/audio-visualizer-from-scratch-javascript/
-			const { innerWidth, innerHeight } = window;
-			const width = innerWidth * 3;
-			const height = innerHeight * 3;
 			const pulseCanvas = document.getElementById("pulseCanvas");
 			var pulseCtx = pulseCanvas.getContext("2d");
-			pulseCanvas.width = width;
-			pulseCanvas.height = height;
+
+			let width, height;
+
+			function setPulseCanvas() {
+				const { innerWidth, innerHeight } = window;
+				width = innerWidth * 3;
+				height = innerHeight * 3;
+				pulseCanvas.width = width;
+				pulseCanvas.height = height;
+			}
+
+			setPulseCanvas();
 
 			var radSubtract = 90;
 			var hue = -30; // 0;
@@ -546,6 +553,7 @@
 				if (window.innerWidth < 900) return;
 
 				if (!options?.once) pulseFrame = requestAnimationFrame(loop);
+
 				update();
 				draw();
 			}
@@ -562,6 +570,16 @@
 				.addEventListener("change", (event) => {
 					if (pulseFrame == null) loop({ angle: 0.878, once: true });
 				});
+
+			window.addEventListener("resize", (event) => {
+				if (window.innerWidth < 900) return;
+				clearTimeout(window.resizedFinished);
+				window.resizedFinished = setTimeout(function () {
+					setPulseCanvas();
+
+					loop({ angle: -0.7 });
+				}, 250);
+			});
 		</script>
 	</body>
 </html>
