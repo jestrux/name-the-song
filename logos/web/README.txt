@@ -6,13 +6,25 @@ Add this to your HTML <head>:
 Add this to your app's manifest.json:
 
     ...
-    {
-      "icons": [
-        { "src": "/favicon.ico", "type": "image/x-icon", "sizes": "16x16 32x32" },
-        { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192" },
-        { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512" },
-        { "src": "/icon-192-maskable.png", "type": "image/png", "sizes": "192x192", "purpose": "maskable" },
-        { "src": "/icon-512-maskable.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" }
-      ]
-    }
+    "icons": [
+      {
+        "src": "favicon.ico",
+        "type": "image/x-icon",
+        "sizes": "64x64 32x32 24x24 16x16"
+      },
+      { "src": "logo192.png", "type": "image/png", "sizes": "192x192" },
+      { "src": "logo512.png", "type": "image/png", "sizes": "512x512" },
+      {
+        "src": "logo192-maskable.png",
+        "type": "image/png",
+        "sizes": "192x192",
+        "purpose": "maskable"
+      },
+      {
+        "src": "logo512-maskable.png",
+        "type": "image/png",
+        "sizes": "512x512",
+        "purpose": "maskable"
+      }
+    ],
     ...
